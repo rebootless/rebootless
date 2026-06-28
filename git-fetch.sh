@@ -250,3 +250,5 @@ row "Activity" \
 printf "\n"
 
 palette
+
+printf "\n"
