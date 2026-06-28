@@ -1,7 +1,7 @@
 Set Theme      "Catppuccin Mocha"
 Set FontFamily "JetBrainsMono Nerd Font Mono"
 Set FontSize   18
-Set Width      1280
+Set Width      1400
 Set Height     800
 Set Padding    32
 Set MarginFill "#1e1e2e"
