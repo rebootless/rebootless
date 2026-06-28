@@ -1,9 +1,9 @@
 Set Theme      "Catppuccin Mocha"
 Set FontFamily "JetBrainsMono Nerd Font Mono"
-Set FontSize   14
-Set Width      1200
-Set Height     950
-Set Padding    24
+Set FontSize   18
+Set Width      1280
+Set Height     800
+Set Padding    32
 Set MarginFill "#1e1e2e"
 
 Type "bash git-fetch.sh"
