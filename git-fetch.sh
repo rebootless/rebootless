@@ -38,6 +38,13 @@ C_STATS_ACTIVITY="255;170;0"
 GITHUB_USER="rebootless"
 COL=20
 
+github_get() {
+    curl -fsSL \
+        -H "User-Agent: git-fetch.sh" \
+        -H "Accept: application/vnd.github+json" \
+        "$1"
+}
+
 print_label() {
     local label="$1"
     local pad=$(( COL - ${#label} - 1 ))
@@ -131,8 +138,8 @@ info "Focus"  "Self-hosted · Automation · Observability"
 
 show_spinner
 
-GITHUB_API="$(curl -fsSL "https://api.github.com/users/$GITHUB_USER")"
-GITHUB_REPOS="$(curl -fsSL "https://api.github.com/users/$GITHUB_USER/repos?per_page=100&type=owner&sort=updated")"
+GITHUB_API="$(github_get "https://api.github.com/users/$GITHUB_USER")"
+GITHUB_REPOS="$(github_get "https://api.github.com/users/$GITHUB_USER/repos?per_page=100&type=owner&sort=updated")"
 
 get_repos() { printf '%s\n' "$GITHUB_API" | grep '"public_repos"' | sed 's/[^0-9]//g'; }
 get_followers() { printf '%s\n' "$GITHUB_API" | grep '"followers"' | head -n1 | sed 's/[^0-9]//g'; }
@@ -147,18 +154,54 @@ get_top_languages() {
 
     while read -r url; do
         [ -z "$url" ] && continue
+
+        echo "Fetching: $url" >&2
+
+        response=$(
+            curl -sS \
+                -w '\nHTTP_CODE:%{http_code}' \
+                -H "User-Agent: git-fetch.sh" \
+                -H "Accept: application/vnd.github+json" \
+                "$url"
+        )
+
+        code="${response##*HTTP_CODE:}"
+        body="${response%HTTP_CODE:*}"
+
+        if [[ "$code" != "200" ]]; then
+            echo "HTTP $code" >&2
+            echo "$body" >&2
+            continue
+        fi
+
         while read -r line; do
-            lang=$(echo "$line" | cut -d\" -f2)
+            [ -z "$line" ] && continue
+
+            lang=$(echo "$line" | cut -d'"' -f2)
             bytes=$(echo "$line" | grep -o '[0-9]\+')
+
             [ -z "$lang" ] && continue
             [ -z "$bytes" ] && continue
-            langs["$lang"]=$((langs["$lang"] + bytes))
-            total=$((total + bytes))
-        done < <(curl -fsSL "$url" | grep -E '"[^"]+": [0-9]+')
-    done < <(echo "$GITHUB_REPOS" | grep '"languages_url"' | sed 's/.*"languages_url": "//; s/".*//')
+
+            langs["$lang"]=$(( ${langs["$lang"]:-0} + bytes ))
+            total=$(( total + bytes ))
+        done < <(
+            echo "$body" | grep -E '"[^"]+": [0-9]+'
+        )
+
+    done < <(
+        echo "$GITHUB_REPOS" |
+        grep '"languages_url"' |
+        sed 's/.*"languages_url": "//; s/".*//'
+    )
+
+    if (( total == 0 )); then
+        return
+    fi
 
     for lang in "${!langs[@]}"; do
-        percent=$(awk -v b="${langs[$lang]}" -v t="$total" 'BEGIN { printf "%.2f", (b/t)*100 }')
+        percent=$(awk -v b="${langs[$lang]}" -v t="$total" \
+            'BEGIN { printf "%.2f", (b/t)*100 }')
 
         icon=""
         case "$lang" in
