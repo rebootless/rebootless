@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  Render:
+  update-portfolio:
     runs-on: ubuntu-latest
     permissions:
       contents: write
