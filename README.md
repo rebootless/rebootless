@@ -1,3 +1,3 @@
 <p align="center">
-  <img src="portfolio.png" alt="VargKernel" />
+  <img src="portfolio.png" alt="rebootless" />
 </p>
