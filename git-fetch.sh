@@ -196,6 +196,7 @@ get_top_languages() {
             JavaScript)          icon="" ;;
             TypeScript)          icon="" ;;
             CSS)                 icon="" ;;
+            SCSS)                icon="" ;;
             HTML)                icon="" ;;
             Go)                  icon="" ;;
             Rust)                icon="" ;;
@@ -203,6 +204,7 @@ get_top_languages() {
             PHP)                 icon="" ;;
             Ruby)                icon="" ;;
             Lua)                 icon="" ;;
+            QML)                 icon="󰙳" ;;
         esac
 
         printf "%s|%s|%s\n" "$lang" "$icon" "$percent"
