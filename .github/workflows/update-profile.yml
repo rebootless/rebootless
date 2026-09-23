@@ -1,0 +1,107 @@
+name: update-profile
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: update-profile
+  cancel-in-progress: false
+
+jobs:
+  update-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Nerd Font
+        id: font-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/jbm.zip
+          key: jetbrainsmono-nerd-font-v3.3.0
+
+      - name: Install VHS + ttyd + ffmpeg + jq
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            ffmpeg \
+            curl \
+            unzip \
+            gnupg \
+            fontconfig \
+            jq \
+            ttyd
+
+          curl -fsSL --max-time 20 --retry 3 --retry-delay 5 \
+            https://repo.charm.sh/apt/gpg.key \
+            | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+
+          echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
+            | sudo tee /etc/apt/sources.list.d/charm.list
+
+          sudo apt-get update -qq
+          sudo apt-get install -y vhs
+          vhs --version
+
+      - name: Install JetBrainsMono Nerd Font
+        env:
+          NERD_FONTS_VERSION: "v3.3.0"
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.local/share/fonts
+
+          if [ ! -f /tmp/jbm.zip ]; then
+            curl -fsSL --max-time 30 --retry 3 --retry-delay 5 \
+              "https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONTS_VERSION}/JetBrainsMono.zip" \
+              -o /tmp/jbm.zip
+          fi
+
+          unzip -q -o /tmp/jbm.zip -d ~/.local/share/fonts
+          fc-cache -f
+
+      - name: Render profile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VHS_NO_SANDBOX: "true"
+          TERM: xterm-256color
+          COLUMNS: "110"
+        run: |
+          set -euo pipefail
+          rm -f profile.png
+          timeout 180 vhs profile.tape
+          if [[ ! -s profile.png ]]; then
+            echo "::error::profile.png missing or empty after vhs run"
+            exit 1
+          fi
+          echo "Wrote profile.png ($(wc -c < profile.png) bytes)"
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add profile.png
+          git diff --staged --quiet && exit 0
+
+          git commit -m "Update profile $(date -u +%Y-%m-%d)"
+
+          for i in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main && break
+            git rebase --abort
+            sleep $((i * 5))
+          done
+
+          git push origin main
