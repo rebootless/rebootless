@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   update-profile:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
 
     permissions:
@@ -51,7 +51,10 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/charm.list
 
           sudo apt-get update -qq
-          sudo apt-get install -y vhs
+
+          # Pinned to 0.11.0, NOT latest: v0.12.0 has a regression.
+
+          sudo apt-get install -y vhs=0.11.0
           vhs --version
 
       - name: Install JetBrainsMono Nerd Font
@@ -72,16 +75,26 @@ jobs:
 
       - name: Render profile
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used by git-fetch.sh
           VHS_NO_SANDBOX: "true"
           TERM: xterm-256color
           COLUMNS: "110"
         run: |
           set -euo pipefail
-          rm -f profile.png
+          rm -rf profile.png profile.gif
+
           timeout 180 vhs profile.tape
-          if [[ ! -s profile.png ]]; then
-            echo "::error::profile.png missing or empty after vhs run"
+
+          if [[ ! -f profile.gif || ! -s profile.gif ]]; then
+            echo "::error::profile.gif missing or empty after vhs run"
+            exit 1
+          fi
+
+          ffmpeg -y -sseof -0.1 -i profile.gif -frames:v 1 -update 1 profile.png
+          rm -f profile.gif
+
+          if [[ ! -f profile.png || ! -s profile.png ]]; then
+            echo "::error::profile.png missing, empty, or not a regular file after ffmpeg extraction"
             exit 1
           fi
           echo "Wrote profile.png ($(wc -c < profile.png) bytes)"
