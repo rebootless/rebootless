@@ -9,13 +9,18 @@ concurrency:
   group: update-profile
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
+env:
+  VHS_VERSION: "0.11.0"
+  TTYD_VERSION: "1.7.7"
+  NERD_FONTS_VERSION: "v3.3.0"
+
 jobs:
   update-profile:
     runs-on: ubuntu-22.04
     timeout-minutes: 15
-
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout
@@ -28,11 +33,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/jbm.zip
-          key: jetbrainsmono-nerd-font-v3.3.0
+          key: jetbrainsmono-nerd-font-${{ env.NERD_FONTS_VERSION }}
 
       - name: Install VHS + ttyd + ffmpeg + jq
         run: |
           set -euo pipefail
+
+          echo ""
+          echo "==> Installing dependencies"
+
           sudo apt-get update -qq
           sudo apt-get install -y \
             ffmpeg \
@@ -40,34 +49,70 @@ jobs:
             unzip \
             gnupg \
             fontconfig \
-            jq \
-            ttyd
+            jq
+
+          echo ""
+          echo "==> Installing ttyd ${TTYD_VERSION}"
+
+          curl -fsSL --max-time 20 --retry 3 --retry-delay 5 \
+            "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.x86_64" \
+            -o /tmp/ttyd
+
+          chmod +x /tmp/ttyd
+          sudo install -m 0755 /tmp/ttyd /usr/local/bin/ttyd
+          rm -f /tmp/ttyd
+
+          echo "Installed ttyd:"
+          ttyd --version
+
+          echo ""
+          echo "==> Configuring Charm APT repository"
+
+          sudo mkdir -p /etc/apt/keyrings
 
           curl -fsSL --max-time 20 --retry 3 --retry-delay 5 \
             https://repo.charm.sh/apt/gpg.key \
-            | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+            | sudo gpg --dearmor --yes -o /etc/apt/keyrings/charm.gpg
+
+          sudo chmod 0644 /etc/apt/keyrings/charm.gpg
 
           echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
-            | sudo tee /etc/apt/sources.list.d/charm.list
+            | sudo tee /etc/apt/sources.list.d/charm.list > /dev/null
 
           sudo apt-get update -qq
 
-          # Pinned to 0.11.0, NOT latest: v0.12.0 has a regression.
+          echo ""
+          echo "==> Installing VHS ${VHS_VERSION}"
 
-          sudo apt-get install -y vhs=0.11.0
+          # !! Pinned to v0.11.0 instead of latest: v0.12.0 has a regression. !!
+
+          # Pinned to v0.11.0: v0.12.0 has a regression that can prevent
+          # ffmpeg from running during GIF encoding while VHS still exits 0.
+          # Revisit after upstream fixes it:
+          # https://github.com/charmbracelet/vhs
+          
+          sudo apt-get install -y "vhs=${VHS_VERSION}"
+
+          echo ""
+          echo "Installed versions:"
           vhs --version
+          ttyd --version
+          ffmpeg -version | head -n1
 
       - name: Install JetBrainsMono Nerd Font
-        env:
-          NERD_FONTS_VERSION: "v3.3.0"
         run: |
           set -euo pipefail
+
           mkdir -p ~/.local/share/fonts
 
           if [ ! -f /tmp/jbm.zip ]; then
+            echo "Downloading JetBrainsMono Nerd Font ${NERD_FONTS_VERSION}..."
+
             curl -fsSL --max-time 30 --retry 3 --retry-delay 5 \
               "https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONTS_VERSION}/JetBrainsMono.zip" \
               -o /tmp/jbm.zip
+          else
+            echo "Using cached JetBrainsMono Nerd Font archive."
           fi
 
           unzip -q -o /tmp/jbm.zip -d ~/.local/share/fonts
@@ -75,12 +120,13 @@ jobs:
 
       - name: Render profile
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used by git-fetch.sh
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VHS_NO_SANDBOX: "true"
           TERM: xterm-256color
           COLUMNS: "110"
         run: |
           set -euo pipefail
+
           rm -rf profile.png profile.gif
 
           timeout 180 vhs profile.tape
@@ -90,29 +136,43 @@ jobs:
             exit 1
           fi
 
-          ffmpeg -y -sseof -0.1 -i profile.gif -frames:v 1 -update 1 profile.png
+          ffmpeg \
+            -y \
+            -sseof -0.1 \
+            -i profile.gif \
+            -frames:v 1 \
+            -update 1 \
+            profile.png
+
           rm -f profile.gif
 
           if [[ ! -f profile.png || ! -s profile.png ]]; then
             echo "::error::profile.png missing, empty, or not a regular file after ffmpeg extraction"
             exit 1
           fi
+
           echo "Wrote profile.png ($(wc -c < profile.png) bytes)"
 
       - name: Commit and push
         run: |
           set -euo pipefail
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add profile.png
+
           git diff --staged --quiet && exit 0
 
           git commit -m "Update profile $(date -u +%Y-%m-%d)"
 
           for i in 1 2 3; do
             git fetch origin main
-            git rebase origin/main && break
+
+            if git rebase origin/main; then
+              break
+            fi
+
             git rebase --abort
             sleep $((i * 5))
           done

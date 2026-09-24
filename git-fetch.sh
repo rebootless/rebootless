@@ -38,7 +38,9 @@ COL=20
 
 github_get() {
     local auth_header=()
-    [ -n "${GITHUB_TOKEN:-}" ] && auth_header=(-H "Authorization: Bearer $GITHUB_TOKEN")
+
+    [ -n "${GITHUB_TOKEN:-}" ] &&
+        auth_header=(-H "Authorization: Bearer $GITHUB_TOKEN")
 
     curl -fsSL \
         -H "User-Agent: git-fetch.sh" \
@@ -50,7 +52,12 @@ github_get() {
 print_label() {
     local label="$1"
     local pad=$(( COL - ${#label} - 1 ))
-    printf "%b%s%b:%${pad}s" "$RED" "$label" "$RESET" ""
+
+    printf "%b%s%b:%${pad}s" \
+        "$RED" \
+        "$label" \
+        "$RESET" \
+        ""
 }
 
 info() {
@@ -65,85 +72,102 @@ badge() {
     local fg="\e[38;2;${rgb}m"
     local bg="\e[48;2;${rgb}m"
 
-    printf "%b%b" "$fg" "$L_CURVE"
-    printf "%b%b%s" "$bg" "$WHITE" "$text"
-    printf "\e[49m%b%b%b" "$fg" "$R_CURVE" "$RESET"
+    printf "%b%b" \
+        "$fg" \
+        "$L_CURVE"
+
+    printf "%b%b%s" \
+        "$bg" \
+        "$WHITE" \
+        "$text"
+
+    printf "\e[49m%b%b%b" \
+        "$fg" \
+        "$R_CURVE" \
+        "$RESET"
 }
 
 row() {
-    print_label "$1"; shift
+    print_label "$1"
+    shift
 
     local printed=0
+
     while (( $# >= 2 )); do
-        (( printed )) && printf " %b❯%b " "$DIM" "$RESET"
+        (( printed )) &&
+            printf " %b❯%b " "$DIM" "$RESET"
+
         badge "$1" "$2"
+
         shift 2
         printed=1
     done
+
     printf "\n"
 }
 
 palette() {
     local row1=(
-    "$C_DEBIAN" "$C_UBUNTU" "$C_QEMU" "$C_VBOX"
-    "$C_DOCKER" "$C_PORTAINER" "$C_PROM" "$C_GRAFANA"
-    "$C_ANSIBLE"
+        "$C_DEBIAN"
+        "$C_UBUNTU"
+        "$C_QEMU"
+        "$C_VBOX"
+        "$C_DOCKER"
+        "$C_PORTAINER"
+        "$C_PROM"
+        "$C_GRAFANA"
+        "$C_ANSIBLE"
     )
 
     local row2=(
-    "$C_OPENTOFU" "$C_BASH" "$C_PYTHON" "$C_CPP"
-    "$C_GITHUB" "$C_GIT" "$C_NGINX" "$C_KATE"
-    "$C_KDEV"
+        "$C_OPENTOFU"
+        "$C_BASH"
+        "$C_PYTHON"
+        "$C_CPP"
+        "$C_GITHUB"
+        "$C_GIT"
+        "$C_NGINX"
+        "$C_KATE"
+        "$C_KDEV"
     )
 
     local c
+
     for c in "${row1[@]}"; do
         printf "\e[48;2;%sm    %b" "$c" "$RESET"
     done
+
     printf "\n"
 
     for c in "${row2[@]}"; do
         printf "\e[48;2;%sm    %b" "$c" "$RESET"
     done
+
     printf "\n"
 }
 
 show_spinner() {
-    local frames=('-' '\' '|' '/')
+    local frames=('-' '' '|' '/')
     local delay=0.1
 
     (
         while true; do
             for frame in "${frames[@]}"; do
                 printf "\r[%s] Fetching GitHub API data..." "$frame"
-                sleep $delay
+                sleep "$delay"
             done
         done
     ) &
+
     SPINNER_PID=$!
 }
 
 hide_spinner() {
     kill "$SPINNER_PID" >/dev/null 2>&1
     wait "$SPINNER_PID" >/dev/null 2>&1
+
     printf "\r%-$(tput cols)s\r" " "
 }
-
-printf "\n"
-printf "%b%b$GITHUB_USER%b@%bgithub%b\n" \
-    "$RED" "$RED" "$RESET" "$RED" "$RESET"
-printf "%b–––––––––––––––––%b\n" "$DIM" "$RESET"
-
-info "Date"   "$(date '+%I:%M %p %Z %m:%d:%Y')"
-info "Whoami" "$GITHUB_USER"
-info "Host"   "github.com"
-info "Role"   "Linux SysAdmin"
-info "Focus"  "Self-hosted · Automation · Observability"
-
-show_spinner
-
-GITHUB_API="$(github_get "https://api.github.com/users/$GITHUB_USER")"
-GITHUB_REPOS="$(github_get "https://api.github.com/users/$GITHUB_USER/repos?per_page=100&type=owner&sort=updated")"
 
 get_repos() {
     jq -r '.public_repos' <<< "$GITHUB_API"
@@ -179,7 +203,7 @@ get_top_languages() {
             total=$(( total + bytes ))
         done < <(
             github_get "$url" |
-            jq -r 'to_entries[] | "\(.key)\t\(.value)"'
+                jq -r 'to_entries[] | "\(.key)\t\(.value)"'
         )
     done < <(
         jq -r '.[].languages_url' <<< "$GITHUB_REPOS"
@@ -188,32 +212,167 @@ get_top_languages() {
     (( total == 0 )) && return
 
     for lang in "${!langs[@]}"; do
-        percent=$(awk -v b="${langs[$lang]}" -v t="$total" \
-            'BEGIN { printf "%.2f", b * 100 / t }')
+        percent=$(
+            awk \
+                -v b="${langs[$lang]}" \
+                -v t="$total" \
+                'BEGIN { printf "%.2f", b * 100 / t }'
+        )
 
         icon=""
+
         case "$lang" in
-            Shell|Bash|Makefile) icon="" ;;
-            Python)              icon="" ;;
-            "C++")               icon="" ;;
-            C)                   icon="" ;;
-            JavaScript)          icon="" ;;
-            TypeScript)          icon="" ;;
-            CSS)                 icon="" ;;
-            SCSS)                icon="" ;;
-            HTML)                icon="" ;;
-            Go)                  icon="" ;;
-            Rust)                icon="" ;;
-            Java)                icon="" ;;
-            PHP)                 icon="" ;;
-            Ruby)                icon="" ;;
-            Lua)                 icon="" ;;
-            QML)                 icon="󰙳" ;;
+            Shell|Bash|Makefile)
+                icon=""
+                ;;
+            Python)
+                icon=""
+                ;;
+            "C++")
+                icon=""
+                ;;
+            C)
+                icon=""
+                ;;
+            JavaScript)
+                icon=""
+                ;;
+            TypeScript)
+                icon=""
+                ;;
+            CSS)
+                icon=""
+                ;;
+            SCSS)
+                icon=""
+                ;;
+            HTML)
+                icon=""
+                ;;
+            Go)
+                icon=""
+                ;;
+            Rust)
+                icon=""
+                ;;
+            Java)
+                icon=""
+                ;;
+            PHP)
+                icon=""
+                ;;
+            Ruby)
+                icon=""
+                ;;
+            Lua)
+                icon=""
+                ;;
+            QML)
+                icon="󰙳"
+                ;;
         esac
 
-        printf "%s|%s|%s\n" "$lang" "$icon" "$percent"
-    done | sort -t'|' -k3 -nr
+        printf "%s|%s|%s\n" \
+            "$lang" \
+            "$icon" \
+            "$percent"
+    done |
+        sort -t'|' -k3 -nr
 }
+
+print_top_languages() {
+    local items=()
+    local lang
+    local icon
+    local percent
+
+    while IFS='|' read -r lang icon percent; do
+        [ -z "$lang" ] && continue
+
+        items+=("$icon $lang ${percent}%")
+    done <<< "$TOP_LANGS_DATA"
+
+    local count="${#items[@]}"
+    (( count == 0 )) && return
+
+    local width
+    width=$(tput cols)
+
+    local available=$(( width - COL ))
+
+    # " ❯ " consists of three visible terminal cells.
+    local separator_width=3
+
+    local line_width=0
+    local first=1
+
+    print_label "Top Languages"
+
+    for ((i = 0; i < count; i++)); do
+        local text="${items[$i]}"
+
+        # badge() adds one left and one right curve.
+        local badge_width=$(( ${#text} + 2 ))
+
+        if (( first )); then
+            badge "$C_STATS_LANGS" "$text"
+
+            line_width=$badge_width
+            first=0
+            continue
+        fi
+
+        # Keep the separator only when the next badge fits.
+        if (( line_width + separator_width + badge_width <= available )); then
+            printf " %b❯%b " "$DIM" "$RESET"
+
+            badge "$C_STATS_LANGS" "$text"
+
+            line_width=$(( line_width + separator_width + badge_width ))
+        else
+            # Continue at exactly the same indentation as the first line.
+            printf "\n%${COL}s" ""
+
+            badge "$C_STATS_LANGS" "$text"
+
+            line_width=$badge_width
+        fi
+    done
+
+    printf "\n"
+}
+
+printf "\n"
+
+printf "%b%b%s%b@%bgithub%b\n" \
+    "$RED" \
+    "$RED" \
+    "$GITHUB_USER" \
+    "$RESET" \
+    "$RED" \
+    "$RESET"
+
+printf "%b–––––––––––––––––%b\n" \
+    "$DIM" \
+    "$RESET"
+
+info "Date"   "$(date '+%I:%M %p %Z %m:%d:%Y')"
+info "Whoami" "$GITHUB_USER"
+info "Host"   "github.com"
+info "Role"   "Linux SysAdmin"
+info "Focus"  "Self-hosted · Automation · Observability"
+
+show_spinner
+
+GITHUB_API="$(
+    github_get \
+        "https://api.github.com/users/$GITHUB_USER"
+)"
+
+GITHUB_REPOS="$(
+    github_get \
+        "https://api.github.com/users/$GITHUB_USER/repos?per_page=100&type=owner&sort=updated"
+)"
 
 TOP_LANGS_DATA=$(get_top_languages)
 
@@ -270,20 +429,7 @@ row "Social" \
     "$C_STATS_SOCIAL" " Followers $(get_followers)" \
     "$C_STATS_SOCIAL" " Following $(get_following)"
 
-print_label "Top Languages"
-
-printed=0
-while IFS='|' read -r lang icon percent; do
-    [ -z "$lang" ] && continue
-
-    (( printed )) && printf " %b❯%b " "$DIM" "$RESET"
-
-    badge "$C_STATS_LANGS" "$icon $lang ${percent}%"
-
-    printed=1
-done <<< "$TOP_LANGS_DATA"
-
-printf "\n"
+print_top_languages
 
 row "Activity" \
     "$C_STATS_ACTIVITY" " Last push $(get_last_push)"
