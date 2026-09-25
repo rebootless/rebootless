@@ -164,7 +164,7 @@ jobs:
 
           git diff --staged --quiet && exit 0
 
-          git commit -m "Update profile $(date -u +%Y-%m-%d)"
+          git commit -m "chore: update profile $(date -u +%Y-%m-%d)"
 
           for i in 1 2 3; do
             git fetch origin main
