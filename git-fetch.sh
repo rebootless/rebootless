@@ -270,6 +270,24 @@ get_top_languages() {
             QML)
                 icon="󰙳"
                 ;;
+            Dockerfile)
+                icon="󰡨"
+                ;;
+            CMake)
+                icon=""
+                ;;
+            Batchfile)
+                icon=""
+                ;;
+            Jinja)
+                icon=""
+                ;;
+            Cuda)
+                icon=""
+                ;;
+            Tape)
+                icon="󰨛"
+                ;;
         esac
 
         printf "%s|%s|%s\n" \
