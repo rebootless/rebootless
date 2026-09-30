@@ -277,7 +277,7 @@ get_top_languages() {
                 icon=""
                 ;;
             Batchfile)
-                icon=""
+                icon=""
                 ;;
             Jinja)
                 icon=""
