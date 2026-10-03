@@ -206,7 +206,8 @@ get_top_languages() {
                 jq -r 'to_entries[] | "\(.key)\t\(.value)"'
         )
     done < <(
-        jq -r '.[].languages_url' <<< "$GITHUB_REPOS"
+        jq -r '.[] | select(.fork | not) | .languages_url' <<< "$GITHUB_REPOS" # Exclude forks 
+        # jq -r '.[].languages_url' <<< "$GITHUB_REPOS"                        # Include forks
     )
 
     (( total == 0 )) && return
