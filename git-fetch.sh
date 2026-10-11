@@ -14,7 +14,7 @@ C_UBUNTU="233;84;32"      # #E95420
 C_QEMU="127;90;240"       # #7F5AF0
 C_VBOX="24;58;97"         # #183A61
 C_DOCKER="36;150;237"     # #2496ED
-C_PORTAINER="19;190;249"  # #13BEF9
+# C_PORTAINER="19;190;249"  # #13BEF9
 C_PROM="230;82;44"        # #E6522C
 C_GRAFANA="244;104;0"     # #F46800
 C_BASH="78;170;37"        # #4EAA25
@@ -22,11 +22,11 @@ C_PYTHON="55;118;171"     # #3776AB
 C_CPP="0;89;156"          # #00599C
 C_GITHUB="36;41;47"       # #24292F
 C_NGINX="0;150;57"        # #009639
-C_KATE="61;174;233"       # #3DAEE9
-C_KDEV="127;90;240"       # #7F5AF0
+# C_KATE="61;174;233"       # #3DAEE9
+# C_KDEV="127;90;240"       # #7F5AF0
 C_GIT="240;80;50"         # #F05032
 C_ANSIBLE="238;0;0"       # #EE0000
-C_OPENTOFU="255;218;24"   # #FFDA18
+# C_OPENTOFU="255;218;24"   # #FFDA18
 
 C_STATS_GITHUB="88;166;255"
 C_STATS_SOCIAL="184;108;255"
@@ -113,22 +113,22 @@ palette() {
         "$C_QEMU"
         "$C_VBOX"
         "$C_DOCKER"
-        "$C_PORTAINER"
-        "$C_PROM"
+        # "$C_PORTAINER"
         "$C_GRAFANA"
         "$C_ANSIBLE"
     )
 
     local row2=(
-        "$C_OPENTOFU"
+        # "$C_OPENTOFU"
         "$C_BASH"
         "$C_PYTHON"
         "$C_CPP"
         "$C_GITHUB"
         "$C_GIT"
         "$C_NGINX"
-        "$C_KATE"
-        "$C_KDEV"
+        # "$C_KATE"
+        # "$C_KDEV"
+        "$C_PROM"
     )
 
     local c
@@ -206,7 +206,7 @@ get_top_languages() {
                 jq -r 'to_entries[] | "\(.key)\t\(.value)"'
         )
     done < <(
-        jq -r '.[] | select(.fork | not) | .languages_url' <<< "$GITHUB_REPOS" # Exclude forks 
+        jq -r '.[] | select(.fork | not) | .languages_url' <<< "$GITHUB_REPOS" # Exclude forks
         # jq -r '.[].languages_url' <<< "$GITHUB_REPOS"                        # Include forks
     )
 
@@ -408,16 +408,16 @@ row "Virtualization" \
     "$C_VBOX"      " VirtualBox"
 
 row "Containers" \
-    "$C_DOCKER"    " Docker" \
-    "$C_PORTAINER" " Portainer"
+    "$C_DOCKER"    " Docker"
+    # "$C_PORTAINER" " Portainer"
 
 row "Observability" \
     "$C_PROM"      " Prometheus" \
     "$C_GRAFANA"   " Grafana"
 
 row "Infrastructure" \
-    "$C_ANSIBLE"   "󱂚 Ansible" \
-    "$C_OPENTOFU"  "󱁢 OpenTofu"
+    "$C_ANSIBLE"   "󱂚 Ansible"
+    # "$C_OPENTOFU"  "󱁢 OpenTofu"
 
 row "Languages" \
     "$C_BASH"      " Bash" \
@@ -433,9 +433,9 @@ row "CI/CD" \
 row "Web Server" \
     "$C_NGINX"     " Nginx"
 
-row "IDE" \
-    "$C_KDEV"      " KDevelop" \
-    "$C_KATE"      " Kate"
+# row "IDE" \
+    # "$C_KDEV"      " KDevelop" \
+    # "$C_KATE"      " Kate"
 
 printf "\n"
 
