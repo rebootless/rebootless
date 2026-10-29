@@ -381,8 +381,7 @@ printf "%b–––––––––––––––––%b\n" \
 info "Date"   "$(date '+%I:%M %p %Z %m:%d:%Y')"
 info "Whoami" "$GITHUB_USER"
 info "Host"   "github.com"
-info "Role"   "Linux SysAdmin"
-info "Focus"  "Self-hosted · Automation · Observability"
+info "Focus"  "Linux • DevOps • SysAdmin"
 
 show_spinner
 
