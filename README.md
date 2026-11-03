@@ -9,8 +9,7 @@ rebootless@github
 Date:
 Whoami:             rebootless
 Host:               github.com
-Role:               Linux SysAdmin
-Focus:              Self-hosted · Automation · Observability
+Focus:              Linux • DevOps • SysAdmin
                                                                                                                                                                                                                                                
 OS:                  Debian ❯  Ubuntu
 Virtualization:      QEMU/KVM ❯  VirtualBox
